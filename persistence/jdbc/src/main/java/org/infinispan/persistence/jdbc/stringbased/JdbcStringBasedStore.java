@@ -72,7 +72,7 @@ import org.infinispan.util.logging.LogFactory;
  * @see org.infinispan.persistence.keymappers.DefaultTwoWayKey2StringMapper
  */
 @ConfiguredBy(JdbcStringBasedStoreConfiguration.class)
-public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
+public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> {
 
    private static final Log log = LogFactory.getLog(JdbcStringBasedStore.class, Log.class);
    private static final boolean trace = log.isTraceEnabled();
@@ -148,7 +148,7 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
    }
 
    @Override
-   public void write(MarshalledEntry entry) {
+   public void write(MarshalledEntry<? extends K, ? extends V> entry) {
       Connection connection = null;
       String keyStr = key2Str(entry.getKey());
       try {
@@ -171,7 +171,7 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
       }
    }
 
-   private void executeUpsert(Connection connection, MarshalledEntry entry, String keyStr)
+   private void executeUpsert(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, String keyStr)
          throws InterruptedException, SQLException {
       PreparedStatement ps = null;
       String sql = tableManager.getUpsertRowSql();
@@ -186,7 +186,7 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
       }
    }
 
-   private void executeLegacyUpdate(Connection connection, MarshalledEntry entry, String keyStr)
+   private void executeLegacyUpdate(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, String keyStr)
          throws InterruptedException, SQLException {
       String sql = tableManager.getSelectIdRowSql();
       if (trace) {
@@ -215,13 +215,14 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
       }
    }
 
+   @SuppressWarnings("unchecked")
    @Override
-   public MarshalledEntry load(Object key) {
+   public MarshalledEntry<K, V> load(Object key) {
       String lockingKey = key2Str(key);
       Connection conn = null;
       PreparedStatement ps = null;
       ResultSet rs = null;
-      MarshalledEntry storedValue = null;
+      MarshalledEntry<K, V> storedValue = null;
       try {
          String sql = tableManager.getSelectRowSql();
          conn = connectionFactory.getConnection();
@@ -295,9 +296,9 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
    }
 
    @Override
-   public void purge(Executor executor, PurgeListener task) {
+   public void purge(Executor executor, PurgeListener<? super K> task) {
       //todo we should make the notification to the purge listener here
-      ExecutorCompletionService<Void> ecs = new ExecutorCompletionService<Void>(executor);
+      ExecutorCompletionService<Void> ecs = new ExecutorCompletionService<>(executor);
       Future<Void> future = ecs.submit(new Callable<Void>() {
          @Override
          public Void call() throws Exception {
@@ -340,10 +341,11 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
 
 
    @Override
-   public void process(final KeyFilter filter, final CacheLoaderTask task, Executor executor, final boolean fetchValue, final boolean fetchMetadata) {
+   public void process(final KeyFilter<? super K> filter, final CacheLoaderTask<K, V> task, Executor executor, final boolean fetchValue, final boolean fetchMetadata) {
 
-      ExecutorCompletionService<Void> ecs = new ExecutorCompletionService<Void>(executor);
+      ExecutorCompletionService<Void> ecs = new ExecutorCompletionService<>(executor);
       Future<Void> future = ecs.submit(new Callable<Void>() {
+         @SuppressWarnings("unchecked")
          @Override
          public Void call() throws Exception {
             Connection conn = null;
@@ -363,12 +365,12 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
                TaskContext taskContext = new TaskContextImpl();
                while (rs.next()) {
                   String keyStr = rs.getString(2);
-                  Object key = ((TwoWayKey2StringMapper) key2StringMapper).getKeyMapping(keyStr);
+                  K key = (K) ((TwoWayKey2StringMapper) key2StringMapper).getKeyMapping(keyStr);
                   if (taskContext.isStopped()) break;
                   if (filter != null && !filter.accept(key))
                      continue;
                   InputStream inputStream = rs.getBinaryStream(1);
-                  MarshalledEntry entry;
+                  MarshalledEntry<K, V> entry;
                   if (fetchValue || fetchMetadata) {
                      KeyValuePair<ByteBuffer, ByteBuffer> kvp = JdbcUtil.unmarshall(ctx.getMarshaller(), inputStream);
                      entry = ctx.getMarshalledEntryFactory().newMarshalledEntry(
@@ -421,8 +423,8 @@ public class JdbcStringBasedStore implements AdvancedLoadWriteStore {
       }
    }
 
-   private void prepareUpdateStatement(MarshalledEntry entry, String key, PreparedStatement ps) throws InterruptedException, SQLException {
-      ByteBuffer byteBuffer = JdbcUtil.marshall(ctx.getMarshaller(), new KeyValuePair(entry.getValueBytes(), entry.getMetadataBytes()));
+   private void prepareUpdateStatement(MarshalledEntry<? extends K, ? extends V> entry, String key, PreparedStatement ps) throws InterruptedException, SQLException {
+      ByteBuffer byteBuffer = JdbcUtil.marshall(ctx.getMarshaller(), new KeyValuePair<>(entry.getValueBytes(), entry.getMetadataBytes()));
       ps.setBinaryStream(1, new ByteArrayInputStream(byteBuffer.getBuf(), byteBuffer.getOffset(), byteBuffer.getLength()), byteBuffer.getLength());
       ps.setLong(2, getExpiryTime(entry.getMetadata()));
       ps.setString(3, key);
