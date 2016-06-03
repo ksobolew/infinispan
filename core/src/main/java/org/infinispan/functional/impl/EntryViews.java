@@ -444,7 +444,8 @@ public final class EntryViews {
       // information and merge it individually
 
       if (metas.length != 0) {
-         MetaParams metaParams = MetaParams.empty();
+         MetaParams metaParams = extractMetaParams(entry);
+         // this will overwrite; we'll still want to merge instances of the same params
          metaParams.addMany(metas);
          entry.setMetadata(MetaParamsInternalMetadata.from(metaParams));
          return metaParams;
