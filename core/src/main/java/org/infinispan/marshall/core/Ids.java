@@ -158,7 +158,7 @@ public interface Ids extends org.infinispan.commons.marshall.Ids {
    int META_PARAMS = 153;
 
    // TODO: Add other meta params
-   int META_LIFESPAN = 154;
+   int META_LONG = 154;
    int META_ENTRY_VERSION = 155;
    int NUMERIC_ENTRY_VERSION = 156;
 
