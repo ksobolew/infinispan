@@ -2,8 +2,12 @@ package org.infinispan.marshall.exts;
 
 import org.infinispan.commons.api.functional.EntryVersion;
 import org.infinispan.commons.api.functional.EntryVersion.NumericEntryVersion;
+import org.infinispan.commons.api.functional.MetaParam;
+import org.infinispan.commons.api.functional.MetaParam.MetaCreated;
 import org.infinispan.commons.api.functional.MetaParam.MetaEntryVersion;
+import org.infinispan.commons.api.functional.MetaParam.MetaLastUsed;
 import org.infinispan.commons.api.functional.MetaParam.MetaLifespan;
+import org.infinispan.commons.api.functional.MetaParam.MetaMaxIdle;
 import org.infinispan.commons.marshall.AbstractExternalizer;
 import org.infinispan.commons.util.Util;
 import org.infinispan.marshall.core.Ids;
@@ -11,7 +15,14 @@ import org.infinispan.marshall.core.Ids;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public final class MetaParamExternalizers {
 
@@ -19,25 +30,37 @@ public final class MetaParamExternalizers {
       // Do not instantiate
    }
 
-   public static final class LifespanExternalizer extends AbstractExternalizer<MetaLifespan> {
+   public static final class LongExternalizer extends AbstractExternalizer<MetaParam<Long>> {
+      private final List<Class<? extends MetaParam<Long>>> constructors = Arrays.asList(
+            MetaCreated.class, MetaLifespan.class, MetaLastUsed.class, MetaMaxIdle.class);
+      private final Map<Class<? extends MetaParam<Long>>, Integer> ids = IntStream.range(0, constructors.size())
+            .boxed()
+            .collect(Collectors.toMap(constructors::get, UnaryOperator.identity()));
+
       @Override
-      public void writeObject(ObjectOutput output, MetaLifespan object) throws IOException {
+      public void writeObject(ObjectOutput output, MetaParam<Long> object) throws IOException {
+         output.writeByte(ids.get(object.getClass()));
          output.writeLong(object.get());
       }
 
       @Override
-      public MetaLifespan readObject(ObjectInput input) throws IOException, ClassNotFoundException {
-         return new MetaLifespan(input.readLong());
+      public MetaParam<Long> readObject(ObjectInput input) throws IOException, ClassNotFoundException {
+         byte type = input.readByte();
+         try {
+            return constructors.get(type).getConstructor(long.class).newInstance(input.readLong());
+         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new ClassNotFoundException("Type: " + type, e);
+         }
       }
 
       @Override
-      public Set<Class<? extends MetaLifespan>> getTypeClasses() {
-         return Util.<Class<? extends MetaLifespan>>asSet(MetaLifespan.class);
+      public Set<Class<? extends MetaParam<Long>>> getTypeClasses() {
+         return ids.keySet();
       }
 
       @Override
       public Integer getId() {
-         return Ids.META_LIFESPAN;
+         return Ids.META_LONG;
       }
    }
 

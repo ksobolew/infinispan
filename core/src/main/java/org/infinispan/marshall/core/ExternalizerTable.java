@@ -374,8 +374,7 @@ public class ExternalizerTable implements ObjectTable {
       addInternalExternalizer(new MetaParamsInternalMetadata.Externalizer());
       addInternalExternalizer(new MetaParams.Externalizer());
 
-      // TODO: Add other MetaParam externalizers
-      addInternalExternalizer(new MetaParamExternalizers.LifespanExternalizer());
+      addInternalExternalizer(new MetaParamExternalizers.LongExternalizer());
       addInternalExternalizer(new MetaParamExternalizers.EntryVersionParamExternalizer());
       addInternalExternalizer(new MetaParamExternalizers.NumericEntryVersionExternalizer());
 
