@@ -21,4 +21,13 @@ public interface TwoWayKey2StringMapper extends Key2StringMapper {
     * @return an object instance that is <i>equal</i> to the original object used to create the key mapping.
     */
    Object getKeyMapping(String stringKey);
+
+   /**
+    * Maps an array of objects back to its original key
+    * @param objectKey multi-object representation of a key
+    * @return an object instance that is <i>equal</i> to the original object used to create the key mapping.
+    */
+   default Object getKeyMapping(Object[] objectKey) {
+      return getKeyMapping((String) objectKey[0]);
+   }
 }

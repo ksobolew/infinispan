@@ -8,6 +8,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -78,6 +80,7 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    private static final boolean trace = log.isTraceEnabled();
 
    private JdbcStringBasedStoreConfiguration configuration;
+   private List<String> keyColumnNames;
 
    private Key2StringMapper key2StringMapper;
    private ConnectionFactory connectionFactory;
@@ -90,6 +93,7 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    @Override
    public void init(InitializationContext ctx) {
       this.configuration = ctx.getConfiguration();
+      this.keyColumnNames = this.configuration.table().idColumnNames();
       this.ctx = ctx;
       cacheName = ctx.getCache().getName();
       globalConfiguration = ctx.getCache().getCacheManager().getCacheManagerConfiguration();
@@ -150,17 +154,17 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    @Override
    public void write(MarshalledEntry<? extends K, ? extends V> entry) {
       Connection connection = null;
-      String keyStr = key2Str(entry.getKey());
+      Object[] keyObjs = key2Objs(entry.getKey());
       try {
          connection = connectionFactory.getConnection();
          if (tableManager.isUpsertSupported()) {
-            executeUpsert(connection, entry, keyStr);
+            executeUpsert(connection, entry, keyObjs);
          } else {
-            executeLegacyUpdate(connection, entry, keyStr);
+            executeLegacyUpdate(connection, entry, keyObjs);
          }
       } catch (SQLException ex) {
-         log.sqlFailureStoringKey(keyStr, ex);
-         throw new PersistenceException(String.format("Error while storing string key to database; key: '%s'", keyStr), ex);
+         log.sqlFailureStoringKey(Arrays.toString(keyObjs), ex);
+         throw new PersistenceException(String.format("Error while storing string key to database; key: '%s'", Arrays.asList(keyObjs)), ex);
       } catch (InterruptedException e) {
          if (trace) {
             log.trace("Interrupted while marshalling to store");
@@ -171,31 +175,33 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
       }
    }
 
-   private void executeUpsert(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, String keyStr)
+   private void executeUpsert(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, Object[] keyObjs)
          throws InterruptedException, SQLException {
       PreparedStatement ps = null;
       String sql = tableManager.getUpsertRowSql();
       if (trace) {
-         log.tracef("Running sql '%s'. Key string is '%s'", sql, keyStr);
+         log.tracef("Running sql '%s'. Key string is '%s'", sql, Arrays.asList(keyObjs));
       } try {
          ps = connection.prepareStatement(sql);
-         prepareUpdateStatement(entry, keyStr, ps);
+         prepareUpdateStatement(entry, keyObjs, ps);
          ps.executeUpdate();
       } finally {
          JdbcUtil.safeClose(ps);
       }
    }
 
-   private void executeLegacyUpdate(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, String keyStr)
+   private void executeLegacyUpdate(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, Object[] keyObjs)
          throws InterruptedException, SQLException {
       String sql = tableManager.getSelectIdRowSql();
       if (trace) {
-         log.tracef("Running sql '%s'. Key string is '%s'", sql, keyStr);
+         log.tracef("Running sql '%s'. Key string is '%s'", sql, Arrays.asList(keyObjs));
       }
       PreparedStatement ps = null;
       try {
          ps = connection.prepareStatement(sql);
-         ps.setString(1, keyStr);
+         for (int i = 0; i < keyColumnNames.size(); i++) {
+            ps.setObject(1 + i, keyObjs[i]);
+         }
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             sql = tableManager.getUpdateRowSql();
@@ -205,10 +211,10 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
          JdbcUtil.safeClose(rs);
          JdbcUtil.safeClose(ps);
          if (trace) {
-            log.tracef("Running sql '%s'. Key string is '%s'", sql, keyStr);
+            log.tracef("Running sql '%s'. Key string is '%s'", sql, Arrays.asList(keyObjs));
          }
          ps = connection.prepareStatement(sql);
-         prepareUpdateStatement(entry, keyStr, ps);
+         prepareUpdateStatement(entry, keyObjs, ps);
          ps.executeUpdate();
       } finally {
          JdbcUtil.safeClose(ps);
@@ -218,7 +224,7 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    @SuppressWarnings("unchecked")
    @Override
    public MarshalledEntry<K, V> load(Object key) {
-      String lockingKey = key2Str(key);
+      Object[] lockingKey = key2Objs(key);
       Connection conn = null;
       PreparedStatement ps = null;
       ResultSet rs = null;
@@ -227,7 +233,9 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
          String sql = tableManager.getSelectRowSql();
          conn = connectionFactory.getConnection();
          ps = conn.prepareStatement(sql);
-         ps.setString(1, lockingKey);
+         for (int i = 0; i < keyColumnNames.size(); i++) {
+            ps.setObject(1 + i, lockingKey[i]);
+         }
          rs = ps.executeQuery();
          if (rs.next()) {
             InputStream inputStream = rs.getBinaryStream(2);
@@ -235,10 +243,10 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
             storedValue = ctx.getMarshalledEntryFactory().newMarshalledEntry(key, icv.getKey(), icv.getValue());
          }
       } catch (SQLException e) {
-         log.sqlFailureReadingKey(key, lockingKey, e);
+         log.sqlFailureReadingKey(key, Arrays.toString(lockingKey), e);
          throw new PersistenceException(String.format(
                "SQL error while fetching stored entry with key: %s, lockingKey: %s",
-               key, lockingKey), e);
+               key, Arrays.asList(lockingKey)), e);
       } finally {
          JdbcUtil.safeClose(rs);
          JdbcUtil.safeClose(ps);
@@ -255,15 +263,17 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    public boolean delete(Object key) {
       Connection connection = null;
       PreparedStatement ps = null;
-      String keyStr = key2Str(key);
+      Object[] keyObjs = key2Objs(key);
       try {
          String sql = tableManager.getDeleteRowSql();
          if (trace) {
-            log.tracef("Running sql '%s' on %s", sql, keyStr);
+            log.tracef("Running sql '%s' on %s", sql, Arrays.asList(keyObjs));
          }
          connection = connectionFactory.getConnection();
          ps = connection.prepareStatement(sql);
-         ps.setString(1, keyStr);
+         for (int i = 0; i < keyColumnNames.size(); i++) {
+            ps.setObject(1 + i, keyObjs[i]);
+         }
          return ps.executeUpdate() == 1;
       } catch (SQLException ex) {
          log.sqlFailureRemovingKeys(ex);
@@ -364,8 +374,11 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
 
                TaskContext taskContext = new TaskContextImpl();
                while (rs.next()) {
-                  String keyStr = rs.getString(2);
-                  K key = (K) ((TwoWayKey2StringMapper) key2StringMapper).getKeyMapping(keyStr);
+                  Object[] keyObjs = new Object[keyColumnNames.size()];
+                  for (int i = 0; i < keyObjs.length; i++) {
+                     keyObjs[i] = rs.getObject(2 + i);
+                  }
+                  K key = (K) ((TwoWayKey2StringMapper) key2StringMapper).getKeyMapping(keyObjs);
                   if (taskContext.isStopped()) break;
                   if (filter != null && !filter.accept(key))
                      continue;
@@ -423,18 +436,20 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
       }
    }
 
-   private void prepareUpdateStatement(MarshalledEntry<? extends K, ? extends V> entry, String key, PreparedStatement ps) throws InterruptedException, SQLException {
+   private void prepareUpdateStatement(MarshalledEntry<? extends K, ? extends V> entry, Object[] key, PreparedStatement ps) throws InterruptedException, SQLException {
       ByteBuffer byteBuffer = JdbcUtil.marshall(ctx.getMarshaller(), new KeyValuePair<>(entry.getValueBytes(), entry.getMetadataBytes()));
       ps.setBinaryStream(1, new ByteArrayInputStream(byteBuffer.getBuf(), byteBuffer.getOffset(), byteBuffer.getLength()), byteBuffer.getLength());
       ps.setLong(2, getExpiryTime(entry.getMetadata()));
-      ps.setString(3, key);
+      for (int i = 0; i < keyColumnNames.size(); i++) {
+         ps.setObject(3 + i, key[i]);
+      }
    }
 
-   private String key2Str(Object key) throws PersistenceException {
+   private Object[] key2Objs(Object key) throws PersistenceException {
       if (!key2StringMapper.isSupportedType(key.getClass())) {
          throw new UnsupportedKeyTypeException(key);
       }
-      return key2StringMapper.getStringMapping(key);
+      return key2StringMapper.getObjectsMapping(key);
    }
 
    public boolean supportsKey(Class<?> keyType) {

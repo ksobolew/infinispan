@@ -23,4 +23,13 @@ public interface Key2StringMapper {
     * @return String representation of the key
     */
    String getStringMapping(Object key);
+
+   /**
+    * Must return an unique array of objects for the supplied key.
+    * @param key key to map to an array of objects
+    * @return multiple-object representation of the key
+    */
+   default Object[] getObjectsMapping(Object key) {
+      return new Object[] { getStringMapping(key) };
+   }
 }
