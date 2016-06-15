@@ -1,5 +1,7 @@
 package org.infinispan.persistence.jdbc.table.management;
 
+import java.util.List;
+
 import org.infinispan.persistence.jdbc.configuration.TableManipulationConfiguration;
 import org.infinispan.persistence.jdbc.connectionfactory.ConnectionFactory;
 import org.infinispan.persistence.jdbc.logging.Log;
@@ -18,9 +20,29 @@ class SybaseTableManager extends AbstractTableManager {
    @Override
    public String getUpdateRowSql() {
       if (updateRowSql == null) {
-         updateRowSql = String.format("UPDATE %s SET %s = ? , %s = ? WHERE %s = convert(%s,?)",
-                                      getTableName(), config.dataColumnName(), config.timestampColumnName(),
-                                      config.idColumnName(), config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("UPDATE ")
+            .append(getTableName())
+            .append(" SET ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(" = ?, ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(" = ? WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = convert(")
+               .append(idColumnTypes.get(i))
+               .append(", ?)");
+         }
+         updateRowSql = buf.toString();
       }
       return updateRowSql;
    }
@@ -28,9 +50,34 @@ class SybaseTableManager extends AbstractTableManager {
    @Override
    public String getSelectRowSql() {
       if (selectRowSql == null) {
-         selectRowSql = String.format("SELECT %s, %s, FROM %s WHERE %s = convert(%s,?)",
-                                      config.idColumnName(), config.dataColumnName(), getTableName(),
-                                      config.idColumnName(), config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            buf.append(idColumnNames.get(i))
+               .append(", ");
+         }
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(dataColumnNames.get(i));
+         }
+         buf.append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = convert(")
+               .append(idColumnTypes.get(i))
+               .append(", ?)");
+         }
+         selectRowSql = buf.toString();
       }
       return selectRowSql;
    }
@@ -38,8 +85,29 @@ class SybaseTableManager extends AbstractTableManager {
    @Override
    public String getSelectIdRowSql() {
       if (selectIdRowSql == null) {
-         selectIdRowSql = String.format("SELECT %s FROM %s WHERE %s = convert(%s,?)",
-                                        config.idColumnName(), getTableName(), config.idColumnName(), config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(idColumnNames.get(i));
+         }
+         buf.append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = convert(")
+               .append(idColumnTypes.get(i))
+               .append(", ?)");
+         }
+         selectIdRowSql = buf.toString();
       }
       return selectIdRowSql;
    }
@@ -47,8 +115,22 @@ class SybaseTableManager extends AbstractTableManager {
    @Override
    public String getDeleteRowSql() {
       if (deleteRowSql == null) {
-         deleteRowSql = String.format("DELETE FROM %s WHERE %s = convert(%s,?)",
-                                      getTableName(), config.idColumnName(), config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         StringBuilder buf = new StringBuilder();
+         buf.append("DELETE FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = convert(")
+               .append(idColumnTypes.get(i))
+               .append(", ?)");
+         }
+         deleteRowSql = buf.toString();
       }
       return deleteRowSql;
    }

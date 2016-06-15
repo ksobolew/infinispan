@@ -11,6 +11,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -108,9 +109,38 @@ public abstract class AbstractTableManager implements TableManager {
       if (cacheName == null || cacheName.trim().length() == 0)
          throw new PersistenceException("cacheName needed in order to create table");
 
-      String ddl = String.format("CREATE TABLE %1$s (%2$s %3$s NOT NULL, %4$s %5$s, %6$s %7$s, PRIMARY KEY (%2$s))",
-                                 getTableName(), config.idColumnName(), config.idColumnType(), config.dataColumnName(),
-                                 config.dataColumnType(), config.timestampColumnName(), config.timestampColumnType());
+      List<String> idColumnNames = config.idColumnNames();
+      List<String> idColumnTypes = config.idColumnTypes();
+      List<String> dataColumnNames = config.dataColumnNames();
+      List<String> dataColumnTypes = config.dataColumnTypes();
+      StringBuilder buf = new StringBuilder();
+      buf.append("CREATE TABLE ")
+         .append(getTableName())
+         .append(" (");
+      for (int i = 0; i < idColumnNames.size(); i++) {
+         buf.append(idColumnNames.get(i))
+            .append(' ')
+            .append(idColumnTypes.get(i))
+            .append(" NOT NULL, ");
+      }
+      for (int i = 0; i < dataColumnNames.size(); i++) {
+         buf.append(dataColumnNames.get(i))
+            .append(' ')
+            .append(dataColumnTypes.get(i))
+            .append(", ");
+      }
+      buf.append(config.timestampColumnName())
+         .append(' ')
+         .append(config.timestampColumnType())
+         .append(", PRIMARY KEY (");
+      for (int i = 0; i < idColumnNames.size(); i++) {
+         if (i > 0) {
+            buf.append(", ");
+         }
+         buf.append(idColumnNames.get(i));
+      }
+      buf.append("))");
+      String ddl = buf.toString();
 
       if (log.isTraceEnabled()) {
          log.tracef("Creating table with following DDL: '%s'.", ddl);
@@ -168,8 +198,27 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getInsertRowSql() {
       if (insertRowSql == null) {
-         insertRowSql = String.format("INSERT INTO %s (%s,%s,%s) VALUES (?,?,?)", getTableName(),
-                                      config.dataColumnName(), config.timestampColumnName(), config.idColumnName());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("INSERT INTO ")
+            .append(getTableName())
+            .append(" (");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         buf.append(config.timestampColumnName());
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            buf.append(", ")
+               .append(idColumnNames.get(i));
+         }
+         buf.append(") VALUES (");
+         for (int i = 0; i < dataColumnNames.size() + idColumnNames.size(); i++) {
+            buf.append("?, ");
+         }
+         buf.append("?)");
+         insertRowSql = buf.toString();
       }
       return insertRowSql;
    }
@@ -177,8 +226,26 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getUpdateRowSql() {
       if (updateRowSql == null) {
-         updateRowSql = String.format("UPDATE %s SET %s = ? , %s = ? WHERE %s = ?", getTableName(),
-                                      config.dataColumnName(), config.timestampColumnName(), config.idColumnName());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("UPDATE ")
+            .append(getTableName())
+            .append(" SET ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(" = ?, ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(" = ? WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = ?");
+         }
+         updateRowSql = buf.toString();
       }
       return updateRowSql;
    }
@@ -186,8 +253,31 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getSelectRowSql() {
       if (selectRowSql == null) {
-         selectRowSql = String.format("SELECT %s, %s FROM %s WHERE %s = ?",
-                                      config.idColumnName(), config.dataColumnName(), getTableName(), config.idColumnName());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            buf.append(idColumnNames.get(i))
+               .append(", ");
+         }
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(dataColumnNames.get(i));
+         }
+         buf.append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = ?");
+         }
+         selectRowSql = buf.toString();
       }
       return selectRowSql;
    }
@@ -195,7 +285,26 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getSelectIdRowSql() {
       if (selectIdRowSql == null) {
-         selectIdRowSql = String.format("SELECT %s FROM %s WHERE %s = ?", config.idColumnName(), getTableName(), config.idColumnName());
+         List<String> idColumnNames = config.idColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(idColumnNames.get(i));
+         }
+         buf.append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = ?");
+         }
+         selectIdRowSql = buf.toString();
       }
       return selectIdRowSql;
    }
@@ -211,7 +320,19 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getDeleteRowSql() {
       if (deleteRowSql == null) {
-         deleteRowSql = String.format("DELETE FROM %s WHERE %s = ?", getTableName(), config.idColumnName());
+         List<String> idColumnNames = config.idColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("DELETE FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = ?");
+         }
+         deleteRowSql = buf.toString();
       }
       return deleteRowSql;
    }
@@ -219,9 +340,27 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getLoadNonExpiredAllRowsSql() {
       if (loadAllNonExpiredRowsSql == null) {
-         loadAllNonExpiredRowsSql = String.format("SELECT %1$s, %2$s, %3$s FROM %4$s WHERE %3$s > ? OR %3$s < 0",
-                                                  config.dataColumnName(), config.idColumnName(),
-                                                  config.timestampColumnName(), getTableName());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            buf.append(idColumnNames.get(i))
+               .append(", ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ")
+            .append(config.timestampColumnName())
+            .append(" > ? OR ")
+            .append(config.timestampColumnName())
+            .append(" < 0");
+         loadAllNonExpiredRowsSql = buf.toString();
       }
       return loadAllNonExpiredRowsSql;
    }
@@ -229,8 +368,23 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getLoadAllRowsSql() {
       if (loadAllRowsSql == null) {
-         loadAllRowsSql = String.format("SELECT %s, %s FROM %s", config.dataColumnName(),
-                                        config.idColumnName(), getTableName());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(idColumnNames.get(i));
+         }
+         buf.append(" FROM ")
+            .append(getTableName());
+         loadAllRowsSql = buf.toString();
       }
       return loadAllRowsSql;
    }
@@ -262,12 +416,60 @@ public abstract class AbstractTableManager implements TableManager {
    @Override
    public String getUpsertRowSql() {
       if (upsertRowSql == null) {
-         upsertRowSql = String.format("MERGE INTO %1$s " +
-                              "USING (VALUES (?, ?, ?)) AS tmp (%2$s, %3$s, %4$s) " +
-                              "ON (%2$s = tmp.%2$s) " +
-                              "WHEN MATCHED THEN UPDATE SET %3$s = tmp.%3$s, %4$s = tmp.%4$s " +
-                              "WHEN NOT MATCHED THEN INSERT (%2$s, %3$s, %4$s) VALUES (tmp.%2$s, tmp.%3$s, tmp.%4$s)",
-                              getTableName(), config.dataColumnName(), config.timestampColumnName(), config.idColumnName());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("MERGE INTO ")
+            .append(getTableName())
+            .append(" USING (VALUES (");
+         for (int i = 0; i < dataColumnNames.size() + idColumnNames.size(); i++) {
+            buf.append("?, ");
+         }
+         buf.append("?)) AS tmp (");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         buf.append(config.timestampColumnName());
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            buf.append(", ")
+               .append(idColumnNames.get(i));
+         }
+         buf.append("ON (");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = tmp.")
+               .append(idColumnNames.get(i));
+         }
+         buf.append(") WHEN MATCHED THEN UPDATE SET ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(" = tmp.")
+               .append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(" = tmp.")
+            .append(config.timestampColumnName())
+            .append(" WHEN NOT MATCHED THEN INSERT (");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(") VALUES (");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append("tmp.")
+               .append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         buf.append("tmp.")
+            .append(config.timestampColumnName())
+            .append(')');
+         upsertRowSql = buf.toString();
 
       }
       return upsertRowSql;

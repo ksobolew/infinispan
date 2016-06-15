@@ -3,6 +3,7 @@ package org.infinispan.persistence.jdbc.configuration;
 import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 import org.h2.Driver;
@@ -46,8 +47,8 @@ public class ConfigurationTest {
          .concurrencyLevel(32)
          .table()
             .tableNamePrefix("BINARY_")
-            .idColumnName("id").idColumnType("VARCHAR")
-            .dataColumnName("datum").dataColumnType("BINARY")
+            .idColumnNames("id").idColumnTypes("VARCHAR")
+            .dataColumnNames("datum").dataColumnTypes("BINARY")
             .timestampColumnName("version").timestampColumnType("BIGINT")
          .async().enable();
       Configuration configuration = b.build();
@@ -55,10 +56,10 @@ public class ConfigurationTest {
       assert store.connectionFactory() instanceof PooledConnectionFactoryConfiguration;
       assert ((PooledConnectionFactoryConfiguration)store.connectionFactory()).connectionUrl().equals(JDBC_URL);
       assert store.table().tableNamePrefix().equals("BINARY_");
-      assert store.table().idColumnName().equals("id");
-      assert store.table().idColumnType().equals("VARCHAR");
-      assert store.table().dataColumnName().equals("datum");
-      assert store.table().dataColumnType().equals("BINARY");
+      assert store.table().idColumnNames().equals(Arrays.asList("id"));
+      assert store.table().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store.table().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store.table().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store.table().timestampColumnName().equals("version");
       assert store.table().timestampColumnType().equals("BIGINT");
       assert store.fetchPersistentState();
@@ -72,10 +73,10 @@ public class ConfigurationTest {
       assert store2.connectionFactory() instanceof PooledConnectionFactoryConfiguration;
       assert ((PooledConnectionFactoryConfiguration)store2.connectionFactory()).connectionUrl().equals(JDBC_URL);
       assert store2.table().tableNamePrefix().equals("BINARY_");
-      assert store2.table().idColumnName().equals("id");
-      assert store2.table().idColumnType().equals("VARCHAR");
-      assert store2.table().dataColumnName().equals("datum");
-      assert store2.table().dataColumnType().equals("BINARY");
+      assert store2.table().idColumnNames().equals(Arrays.asList("id"));
+      assert store2.table().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store2.table().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store2.table().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store2.table().timestampColumnName().equals("version");
       assert store2.table().timestampColumnType().equals("BIGINT");
       assert store2.fetchPersistentState();
@@ -98,14 +99,14 @@ public class ConfigurationTest {
 
       mixedBuilder.binaryTable()
          .tableNamePrefix("BINARY_")
-         .idColumnName("id").idColumnType("VARCHAR")
-         .dataColumnName("datum").dataColumnType("BINARY")
+         .idColumnNames("id").idColumnTypes("VARCHAR")
+         .dataColumnNames("datum").dataColumnTypes("BINARY")
          .timestampColumnName("version").timestampColumnType("BIGINT");
 
       mixedBuilder.stringTable()
          .tableNamePrefix("STRINGS_")
-         .idColumnName("id").idColumnType("VARCHAR")
-         .dataColumnName("datum").dataColumnType("BINARY")
+         .idColumnNames("id").idColumnTypes("VARCHAR")
+         .dataColumnNames("datum").dataColumnTypes("BINARY")
          .timestampColumnName("version").timestampColumnType("BIGINT");
 
       Configuration configuration = b.build();
@@ -113,17 +114,17 @@ public class ConfigurationTest {
       assert store.connectionFactory() instanceof PooledConnectionFactoryConfiguration;
       assert ((PooledConnectionFactoryConfiguration)store.connectionFactory()).connectionUrl().equals(JDBC_URL);
       assert store.binaryTable().tableNamePrefix().equals("BINARY_");
-      assert store.binaryTable().idColumnName().equals("id");
-      assert store.binaryTable().idColumnType().equals("VARCHAR");
-      assert store.binaryTable().dataColumnName().equals("datum");
-      assert store.binaryTable().dataColumnType().equals("BINARY");
+      assert store.binaryTable().idColumnNames().equals(Arrays.asList("id"));
+      assert store.binaryTable().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store.binaryTable().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store.binaryTable().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store.binaryTable().timestampColumnName().equals("version");
       assert store.binaryTable().timestampColumnType().equals("BIGINT");
       assert store.stringTable().tableNamePrefix().equals("STRINGS_");
-      assert store.stringTable().idColumnName().equals("id");
-      assert store.stringTable().idColumnType().equals("VARCHAR");
-      assert store.stringTable().dataColumnName().equals("datum");
-      assert store.stringTable().dataColumnType().equals("BINARY");
+      assert store.stringTable().idColumnNames().equals(Arrays.asList("id"));
+      assert store.stringTable().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store.stringTable().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store.stringTable().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store.stringTable().timestampColumnName().equals("version");
       assert store.stringTable().timestampColumnType().equals("BIGINT");
       assert store.batchSize() == 50;
@@ -141,17 +142,17 @@ public class ConfigurationTest {
       JdbcMixedStoreConfiguration store2 = (JdbcMixedStoreConfiguration) configuration2.persistence().stores().get(0);
       assert store2.connectionFactory() instanceof PooledConnectionFactoryConfiguration;
       assert ((PooledConnectionFactoryConfiguration)store2.connectionFactory()).connectionUrl().equals(JDBC_URL);
-      assert store2.binaryTable().idColumnName().equals("id");
-      assert store2.binaryTable().idColumnType().equals("VARCHAR");
-      assert store2.binaryTable().dataColumnName().equals("datum");
-      assert store2.binaryTable().dataColumnType().equals("BINARY");
+      assert store2.binaryTable().idColumnNames().equals(Arrays.asList("id"));
+      assert store2.binaryTable().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store2.binaryTable().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store2.binaryTable().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store2.binaryTable().timestampColumnName().equals("version");
       assert store2.binaryTable().timestampColumnType().equals("BIGINT");
       assert store2.stringTable().tableNamePrefix().equals("STRINGS_");
-      assert store2.stringTable().idColumnName().equals("id");
-      assert store2.stringTable().idColumnType().equals("VARCHAR");
-      assert store2.stringTable().dataColumnName().equals("datum");
-      assert store2.stringTable().dataColumnType().equals("BINARY");
+      assert store2.stringTable().idColumnNames().equals(Arrays.asList("id"));
+      assert store2.stringTable().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store2.stringTable().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store2.stringTable().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store2.stringTable().timestampColumnName().equals("version");
       assert store2.stringTable().timestampColumnType().equals("BIGINT");
       assert store2.fetchPersistentState();
@@ -167,8 +168,8 @@ public class ConfigurationTest {
          .fetchPersistentState(true)
          .table()
             .tableNamePrefix("STRINGS_")
-            .idColumnName("id").idColumnType("VARCHAR")
-            .dataColumnName("datum").dataColumnType("BINARY")
+            .idColumnNames("id").idColumnTypes("VARCHAR")
+            .dataColumnNames("datum").dataColumnTypes("BINARY")
             .timestampColumnName("version").timestampColumnType("BIGINT")
          .async().enable();
       Configuration configuration = b.build();
@@ -176,10 +177,10 @@ public class ConfigurationTest {
       assert store.connectionFactory() instanceof PooledConnectionFactoryConfiguration;
       assert ((PooledConnectionFactoryConfiguration)store.connectionFactory()).connectionUrl().equals(JDBC_URL);
       assert store.table().tableNamePrefix().equals("STRINGS_");
-      assert store.table().idColumnName().equals("id");
-      assert store.table().idColumnType().equals("VARCHAR");
-      assert store.table().dataColumnName().equals("datum");
-      assert store.table().dataColumnType().equals("BINARY");
+      assert store.table().idColumnNames().equals(Arrays.asList("id"));
+      assert store.table().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store.table().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store.table().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store.table().timestampColumnName().equals("version");
       assert store.table().timestampColumnType().equals("BIGINT");
       assert store.fetchPersistentState();
@@ -192,10 +193,10 @@ public class ConfigurationTest {
       assert store2.connectionFactory() instanceof PooledConnectionFactoryConfiguration;
       assert ((PooledConnectionFactoryConfiguration)store2.connectionFactory()).connectionUrl().equals(JDBC_URL);
       assert store2.table().tableNamePrefix().equals("STRINGS_");
-      assert store2.table().idColumnName().equals("id");
-      assert store2.table().idColumnType().equals("VARCHAR");
-      assert store2.table().dataColumnName().equals("datum");
-      assert store2.table().dataColumnType().equals("BINARY");
+      assert store2.table().idColumnNames().equals(Arrays.asList("id"));
+      assert store2.table().idColumnTypes().equals(Arrays.asList("VARCHAR"));
+      assert store2.table().dataColumnNames().equals(Arrays.asList("datum"));
+      assert store2.table().dataColumnTypes().equals(Arrays.asList("BINARY"));
       assert store2.table().timestampColumnName().equals("version");
       assert store2.table().timestampColumnType().equals("BIGINT");
       assert store2.fetchPersistentState();

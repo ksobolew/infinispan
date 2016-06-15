@@ -1,6 +1,9 @@
 package org.infinispan.persistence.jdbc.mixed;
 
 import org.junit.Assert;
+
+import java.util.Arrays;
+
 import org.infinispan.commons.CacheConfigurationException;
 import org.infinispan.configuration.cache.CacheMode;
 import org.infinispan.configuration.cache.Configuration;
@@ -41,22 +44,22 @@ public class JdbcMixedStoreConfigurationTest {
       storeBuilder
             .binaryTable()
                .createOnStart(false)
-               .dataColumnName("binary_dc")
-               .dataColumnType("binary_dct")
+               .dataColumnNames("binary_dc")
+               .dataColumnTypes("binary_dct")
             .stringTable()
                .createOnStart(true)
-               .dataColumnName("strings_dc")
-               .dataColumnType("strings_dct");
+               .dataColumnNames("strings_dc")
+               .dataColumnTypes("strings_dct");
 
       config = storeBuilder.create();
 
       //some checks
       Assert.assertFalse(config.binaryTable().createOnStart());
       Assert.assertTrue(config.stringTable().createOnStart());
-      Assert.assertEquals(config.binaryTable().dataColumnName(), "binary_dc");
-      Assert.assertEquals(config.binaryTable().dataColumnType(), "binary_dct");
-      Assert.assertEquals(config.stringTable().dataColumnName(), "strings_dc");
-      Assert.assertEquals(config.stringTable().dataColumnType(), "strings_dct");
+      Assert.assertEquals(config.binaryTable().dataColumnNames(), Arrays.asList("binary_dc"));
+      Assert.assertEquals(config.binaryTable().dataColumnTypes(), Arrays.asList("binary_dct"));
+      Assert.assertEquals(config.stringTable().dataColumnNames(), Arrays.asList("strings_dc"));
+      Assert.assertEquals(config.stringTable().dataColumnTypes(), Arrays.asList("strings_dct"));
    }
 
    @Test(expectedExceptions = CacheConfigurationException.class)
@@ -109,15 +112,15 @@ public class JdbcMixedStoreConfigurationTest {
             .dropOnExit(false)
             .createOnStart(true)
             .tableNamePrefix("ISPN6Alpha2_STRING")
-            .idColumnName("ID").idColumnType("VARCHAR(255)")
-            .dataColumnName("DATA").dataColumnType("VARBINARY(1000)")
+            .idColumnNames("ID").idColumnTypes("VARCHAR(255)")
+            .dataColumnNames("DATA").dataColumnTypes("VARBINARY(1000)")
             .timestampColumnName("TIMESTAMP").timestampColumnType("BIGINT")
             .binaryTable()
             .dropOnExit(false)
             .createOnStart(true)
             .tableNamePrefix("ISPN6Alpha2_BINARY")
-            .idColumnName("ID").idColumnType("VARCHAR(255)")
-            .dataColumnName("DATA").dataColumnType("VARBINARY(1000)")
+            .idColumnNames("ID").idColumnTypes("VARCHAR(255)")
+            .dataColumnNames("DATA").dataColumnTypes("VARBINARY(1000)")
             .timestampColumnName("TIMESTAMP").timestampColumnType("BIGINT")
             .dataSource()
             .jndiUrl("java:jboss/datasources/ExampleDS");

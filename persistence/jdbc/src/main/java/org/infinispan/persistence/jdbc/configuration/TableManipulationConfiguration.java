@@ -1,17 +1,21 @@
 package org.infinispan.persistence.jdbc.configuration;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.infinispan.commons.configuration.attributes.Attribute;
 import org.infinispan.commons.configuration.attributes.AttributeDefinition;
 import org.infinispan.commons.configuration.attributes.AttributeSet;
 import org.infinispan.persistence.jdbc.table.management.TableManager;
 
 public class TableManipulationConfiguration {
-   public static final AttributeDefinition<String> ID_COLUMN_NAME = AttributeDefinition.builder("idColumnName", null, String.class).immutable().build();
-   public static final AttributeDefinition<String> ID_COLUMN_TYPE = AttributeDefinition.builder("idColumnType", null, String.class).immutable().build();
+   public static final AttributeDefinition<List<String>> ID_COLUMN_NAMES = AttributeDefinition.builder("idColumnName", Collections.<String> emptyList()).copier(v -> new ArrayList<>(v)).immutable().build();
+   public static final AttributeDefinition<List<String>> ID_COLUMN_TYPES = AttributeDefinition.builder("idColumnType", Collections.<String> emptyList()).copier(v -> new ArrayList<>(v)).immutable().build();
    public static final AttributeDefinition<String> TABLE_NAME_PREFIX = AttributeDefinition.builder("tableNamePrefix", null, String.class).immutable().build();
    public static final AttributeDefinition<String> CACHE_NAME = AttributeDefinition.builder("cacheName", null, String.class).immutable().build();
-   public static final AttributeDefinition<String> DATA_COLUMN_NAME = AttributeDefinition.builder("dataColumnName", null, String.class).immutable().build();
-   public static final AttributeDefinition<String> DATA_COLUMN_TYPE = AttributeDefinition.builder("dataColumnType", null, String.class).immutable().build();
+   public static final AttributeDefinition<List<String>> DATA_COLUMN_NAMES = AttributeDefinition.builder("dataColumnName", Collections.<String> emptyList()).copier(v -> new ArrayList<>(v)).immutable().build();
+   public static final AttributeDefinition<List<String>> DATA_COLUMN_TYPES = AttributeDefinition.builder("dataColumnType", Collections.<String> emptyList()).copier(v -> new ArrayList<>(v)).immutable().build();
    public static final AttributeDefinition<String> TIMESTAMP_COLUMN_NAME = AttributeDefinition.builder("timestampColumnName", null, String.class).immutable().build();
    public static final AttributeDefinition<String> TIMESTAMP_COLUMN_TYPE = AttributeDefinition.builder("timestampColumnType", null, String.class).immutable().build();
    public static final AttributeDefinition<Integer> BATCH_SIZE = AttributeDefinition.builder("batchSize", TableManager.DEFAULT_BATCH_SIZE).immutable().build();
@@ -20,16 +24,16 @@ public class TableManipulationConfiguration {
    public static final AttributeDefinition<Boolean> DROP_ON_EXIT = AttributeDefinition.builder("dropOnExit", false).immutable().build();
 
    static AttributeSet attributeSet() {
-      return new AttributeSet(TableManipulationConfiguration.class, ID_COLUMN_NAME, ID_COLUMN_TYPE, TABLE_NAME_PREFIX, CACHE_NAME, DATA_COLUMN_NAME, DATA_COLUMN_TYPE,
+      return new AttributeSet(TableManipulationConfiguration.class, ID_COLUMN_NAMES, ID_COLUMN_TYPES, TABLE_NAME_PREFIX, CACHE_NAME, DATA_COLUMN_NAMES, DATA_COLUMN_TYPES,
                               TIMESTAMP_COLUMN_NAME, TIMESTAMP_COLUMN_TYPE, BATCH_SIZE, FETCH_SIZE, CREATE_ON_START, DROP_ON_EXIT);
    }
 
-   private final Attribute<String> idColumnName;
-   private final Attribute<String> idColumnType;
+   private final Attribute<List<String>> idColumnNames;
+   private final Attribute<List<String>> idColumnTypes;
    private final Attribute<String> tableNamePrefix;
    private final Attribute<String> cacheName;
-   private final Attribute<String> dataColumnName;
-   private final Attribute<String> dataColumnType;
+   private final Attribute<List<String>> dataColumnNames;
+   private final Attribute<List<String>> dataColumnTypes;
    private final Attribute<String> timestampColumnName;
    private final Attribute<String> timestampColumnType;
    private final Attribute<Integer> batchSize;
@@ -40,12 +44,12 @@ public class TableManipulationConfiguration {
 
    TableManipulationConfiguration(AttributeSet attributes) {
       this.attributes = attributes.checkProtection();
-      idColumnName = attributes.attribute(ID_COLUMN_NAME);
-      idColumnType = attributes.attribute(ID_COLUMN_TYPE);
+      idColumnNames = attributes.attribute(ID_COLUMN_NAMES);
+      idColumnTypes = attributes.attribute(ID_COLUMN_TYPES);
       tableNamePrefix = attributes.attribute(TABLE_NAME_PREFIX);
       cacheName = attributes.attribute(CACHE_NAME);
-      dataColumnName = attributes.attribute(DATA_COLUMN_NAME);
-      dataColumnType = attributes.attribute(DATA_COLUMN_TYPE);
+      dataColumnNames = attributes.attribute(DATA_COLUMN_NAMES);
+      dataColumnTypes = attributes.attribute(DATA_COLUMN_TYPES);
       timestampColumnName = attributes.attribute(TIMESTAMP_COLUMN_NAME);
       timestampColumnType = attributes.attribute(TIMESTAMP_COLUMN_TYPE);
       batchSize = attributes.attribute(BATCH_SIZE);
@@ -62,12 +66,12 @@ public class TableManipulationConfiguration {
       return dropOnExit.get();
    }
 
-   public String idColumnName() {
-      return idColumnName.get();
+   public List<String> idColumnNames() {
+      return Collections.unmodifiableList(idColumnNames.get());
    }
 
-   public String idColumnType() {
-      return idColumnType.get();
+   public List<String> idColumnTypes() {
+      return Collections.unmodifiableList(idColumnTypes.get());
    }
 
    public String tableNamePrefix() {
@@ -78,12 +82,12 @@ public class TableManipulationConfiguration {
       return cacheName.get();
    }
 
-   public String dataColumnName() {
-      return dataColumnName.get();
+   public List<String> dataColumnNames() {
+      return Collections.unmodifiableList(dataColumnNames.get());
    }
 
-   public String dataColumnType() {
-      return dataColumnType.get();
+   public List<String> dataColumnTypes() {
+      return Collections.unmodifiableList(dataColumnTypes.get());
    }
 
    public String timestampColumnName() {

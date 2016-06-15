@@ -17,6 +17,9 @@ import javax.xml.stream.XMLStreamException;
 
 import static org.infinispan.commons.util.StringPropertyReplacer.replaceProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * JDBC cache store configuration parser.
  *
@@ -325,19 +328,23 @@ public class JdbcStoreConfigurationParser implements ConfigurationParser {
 
    private void parseTableElements(XMLExtendedStreamReader reader, TableManipulationConfigurationBuilder<?, ?> builder)
          throws XMLStreamException {
+      List<String> idColumnNames = new ArrayList<>(1);
+      List<String> idColumnTypes = new ArrayList<>(1);
+      List<String> dataColumnNames = new ArrayList<>(1);
+      List<String> dataColumnTypes = new ArrayList<>(1);
       while (reader.hasNext() && (reader.nextTag() != XMLStreamConstants.END_ELEMENT)) {
          Element element = Element.forName(reader.getLocalName());
          switch (element) {
             case ID_COLUMN: {
                Column column = parseTableElementAttributes(reader);
-               builder.idColumnName(column.name);
-               builder.idColumnType(column.type);
+               idColumnNames.add(column.name);
+               idColumnTypes.add(column.type);
                break;
             }
             case DATA_COLUMN: {
                Column column = parseTableElementAttributes(reader);
-               builder.dataColumnName(column.name);
-               builder.dataColumnType(column.type);
+               dataColumnNames.add(column.name);
+               dataColumnTypes.add(column.type);
                break;
             }
             case TIMESTAMP_COLUMN: {
@@ -351,6 +358,10 @@ public class JdbcStoreConfigurationParser implements ConfigurationParser {
             }
          }
       }
+      builder.idColumnNames(idColumnNames.toArray(new String[idColumnNames.size()]));
+      builder.idColumnTypes(idColumnTypes.toArray(new String[idColumnTypes.size()]));
+      builder.dataColumnNames(dataColumnNames.toArray(new String[dataColumnNames.size()]));
+      builder.dataColumnTypes(dataColumnTypes.toArray(new String[dataColumnTypes.size()]));
    }
 
    private Column parseTableElementAttributes(XMLExtendedStreamReader reader) throws XMLStreamException {

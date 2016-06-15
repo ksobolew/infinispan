@@ -64,8 +64,8 @@ public abstract class AbstractJdbcStoreConfigurationSerializer extends AbstractS
       attributes.write(writer, TableManipulationConfiguration.CREATE_ON_START, Attribute.CREATE_ON_START);
       attributes.write(writer, TableManipulationConfiguration.DROP_ON_EXIT, Attribute.DROP_ON_EXIT);
 
-      writeJDBCStoreColumn(writer, Element.ID_COLUMN, attributes, TableManipulationConfiguration.ID_COLUMN_NAME, TableManipulationConfiguration.ID_COLUMN_TYPE);
-      writeJDBCStoreColumn(writer, Element.DATA_COLUMN, attributes, TableManipulationConfiguration.DATA_COLUMN_NAME, TableManipulationConfiguration.DATA_COLUMN_TYPE);
+      writeJDBCStoreColumn(writer, Element.ID_COLUMN, attributes, TableManipulationConfiguration.ID_COLUMN_NAMES, TableManipulationConfiguration.ID_COLUMN_TYPES);
+      writeJDBCStoreColumn(writer, Element.DATA_COLUMN, attributes, TableManipulationConfiguration.DATA_COLUMN_NAMES, TableManipulationConfiguration.DATA_COLUMN_TYPES);
       writeJDBCStoreColumn(writer, Element.TIMESTAMP_COLUMN, attributes, TableManipulationConfiguration.TIMESTAMP_COLUMN_NAME, TableManipulationConfiguration.TIMESTAMP_COLUMN_TYPE);
 
       writer.writeEndElement();

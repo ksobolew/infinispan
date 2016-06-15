@@ -107,10 +107,10 @@ public class UnitTestDatabaseManager {
    public static void buildTableManipulation(TableManipulationConfigurationBuilder<?, ?> table, boolean binary) {
       table
          .tableNamePrefix(binary ? "ISPN_BINARY" : "ISPN_STRING")
-         .idColumnName("ID_COLUMN")
-         .idColumnType(binary ? "INT" : "VARCHAR(255)")
-         .dataColumnName("DATA_COLUMN")
-         .dataColumnType("BLOB")
+         .idColumnNames("ID_COLUMN")
+         .idColumnTypes(binary ? "INT" : "VARCHAR(255)")
+         .dataColumnNames("DATA_COLUMN")
+         .dataColumnTypes("BLOB")
          .timestampColumnName("TIMESTAMP_COLUMN")
          .timestampColumnType("BIGINT");
    }

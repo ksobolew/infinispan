@@ -5,6 +5,7 @@ import static org.testng.AssertJUnit.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 import org.infinispan.configuration.cache.StoreConfiguration;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -48,7 +49,7 @@ public class XmlFileParsingTest extends AbstractInfinispanTest {
       JdbcStringBasedStoreConfiguration store = (JdbcStringBasedStoreConfiguration) buildCacheManagerWithCacheStore(config);
       assertEquals(128, store.table().batchSize());
       assertEquals(34, store.table().fetchSize());
-      assertEquals("BINARY", store.table().dataColumnType());
+      assertEquals(Arrays.asList("BINARY"), store.table().dataColumnTypes());
       assertEquals("version", store.table().timestampColumnName());
       assertTrue(store.async().enabled());
       assertEquals("DummyKey2StringMapper", store.key2StringMapper());
@@ -88,7 +89,7 @@ public class XmlFileParsingTest extends AbstractInfinispanTest {
       assertEquals("bucket", store.table().tableNamePrefix());
       assertEquals(128, store.table().batchSize());
       assertEquals(34, store.table().fetchSize());
-      assertEquals("BINARY", store.table().dataColumnType());
+      assertEquals(Arrays.asList("BINARY"), store.table().dataColumnTypes());
       assertEquals("version", store.table().timestampColumnName());
       assertFalse(store.purgeOnStartup());
       assertTrue(store.singletonStore().enabled());
@@ -128,13 +129,13 @@ public class XmlFileParsingTest extends AbstractInfinispanTest {
       assertEquals("entry", store.stringTable().tableNamePrefix());
       assertEquals(128, store.stringTable().batchSize());
       assertEquals(34, store.stringTable().fetchSize());
-      assertEquals("BINARY", store.stringTable().dataColumnType());
+      assertEquals(Arrays.asList("BINARY"), store.stringTable().dataColumnTypes());
       assertEquals("version", store.stringTable().timestampColumnName());
 
       assertEquals("bucket", store.binaryTable().tableNamePrefix());
       assertEquals(256, store.binaryTable().batchSize());
       assertEquals(44, store.binaryTable().fetchSize());
-      assertEquals("BINARY", store.binaryTable().dataColumnType());
+      assertEquals(Arrays.asList("BINARY"), store.binaryTable().dataColumnTypes());
       assertEquals("version", store.binaryTable().timestampColumnName());
       assertEquals(DatabaseType.H2, store.dialect());
 

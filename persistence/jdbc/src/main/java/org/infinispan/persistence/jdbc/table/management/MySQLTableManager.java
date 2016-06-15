@@ -1,5 +1,7 @@
 package org.infinispan.persistence.jdbc.table.management;
 
+import java.util.List;
+
 import org.infinispan.persistence.jdbc.configuration.TableManipulationConfiguration;
 import org.infinispan.persistence.jdbc.connectionfactory.ConnectionFactory;
 import org.infinispan.persistence.jdbc.logging.Log;
@@ -24,9 +26,22 @@ class MySQLTableManager extends AbstractTableManager {
    @Override
    public String getUpsertRowSql() {
       if (upsertRowSql == null) {
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
          // Assumes that config.idColumnName is the primary key
-         upsertRowSql = String.format("%1$s ON DUPLICATE KEY UPDATE %2$s = VALUES(%2$s), %3$s = VALUES(%3$s)", getInsertRowSql(),
-                                      config.dataColumnName(), config.timestampColumnName());
+         buf.append(getInsertRowSql())
+            .append(" ON DUPLICATE KEY UPDATE ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(" = VALUES(")
+               .append(dataColumnNames.get(i))
+               .append("), ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(" = VALUES(")
+            .append(config.timestampColumnName())
+            .append(')');
+         upsertRowSql = buf.toString();
       }
       return upsertRowSql;
    }

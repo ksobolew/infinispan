@@ -10,6 +10,9 @@ import org.infinispan.persistence.jdbc.logging.Log;
 
 import static org.infinispan.persistence.jdbc.configuration.TableManipulationConfiguration.*;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * TableManipulationConfigurationBuilder.
  *
@@ -76,32 +79,32 @@ public abstract class TableManipulationConfigurationBuilder<B extends AbstractJd
    /**
     * The name of the database column used to store the keys
     */
-   public S idColumnName(String idColumnName) {
-      attributes.attribute(ID_COLUMN_NAME).set(idColumnName);
+   public S idColumnNames(String... idColumnNames) {
+      attributes.attribute(ID_COLUMN_NAMES).set(Arrays.asList(idColumnNames.clone()));
       return self();
    }
 
    /**
     * The type of the database column used to store the keys
     */
-   public S idColumnType(String idColumnType) {
-      attributes.attribute(ID_COLUMN_TYPE).set(idColumnType);
+   public S idColumnTypes(String... idColumnTypes) {
+      attributes.attribute(ID_COLUMN_TYPES).set(Arrays.asList(idColumnTypes.clone()));
       return self();
    }
 
    /**
     * The name of the database column used to store the entries
     */
-   public S dataColumnName(String dataColumnName) {
-      attributes.attribute(DATA_COLUMN_NAME).set(dataColumnName);
+   public S dataColumnNames(String... dataColumnNames) {
+      attributes.attribute(DATA_COLUMN_NAMES).set(Arrays.asList(dataColumnNames.clone()));
       return self();
    }
 
    /**
     * The type of the database column used to store the entries
     */
-   public S dataColumnType(String dataColumnType) {
-      attributes.attribute(DATA_COLUMN_TYPE).set(dataColumnType);
+   public S dataColumnTypes(String... dataColumnTypes) {
+      attributes.attribute(DATA_COLUMN_TYPES).set(Arrays.asList(dataColumnTypes.clone()));
       return self();
    }
 
@@ -123,15 +126,25 @@ public abstract class TableManipulationConfigurationBuilder<B extends AbstractJd
 
    @Override
    public void validate() {
-      validateIfSet(ID_COLUMN_NAME, ID_COLUMN_TYPE, DATA_COLUMN_NAME, DATA_COLUMN_TYPE, TIMESTAMP_COLUMN_NAME, TIMESTAMP_COLUMN_TYPE, TABLE_NAME_PREFIX);
+      validateIfSet(ID_COLUMN_NAMES, ID_COLUMN_TYPES, DATA_COLUMN_NAMES, DATA_COLUMN_TYPES, TIMESTAMP_COLUMN_NAME, TIMESTAMP_COLUMN_TYPE, TABLE_NAME_PREFIX);
+      validateSync(ID_COLUMN_NAMES, ID_COLUMN_TYPES);
+      validateSync(DATA_COLUMN_NAMES, DATA_COLUMN_TYPES);
    }
 
    private void validateIfSet(AttributeDefinition<?>... definitions) {
       for(AttributeDefinition<?> definition : definitions) {
-         String value = attributes.attribute(definition).asObject();
-         if(value == null || value.isEmpty()) {
+         Object value = attributes.attribute(definition).get();
+         if(value == null || (value instanceof String && ((String) value).isEmpty()) || (value instanceof Object[] && ((Object[]) value).length == 0)) {
             throw log.tableManipulationAttributeNotSet(definition.name());
          }
+      }
+   }
+
+   private void validateSync(AttributeDefinition<List<String>> columnNames, AttributeDefinition<List<String>> columnTypes) {
+      int namesCount = attributes.attribute(columnNames).get().size();
+      int typesCount = attributes.attribute(columnTypes).get().size();
+      if (namesCount != typesCount) {
+         throw log.tableManipulationColumnNamesAndTypesDontMatch(typesCount, namesCount, columnTypes.name(), columnNames.name());
       }
    }
 

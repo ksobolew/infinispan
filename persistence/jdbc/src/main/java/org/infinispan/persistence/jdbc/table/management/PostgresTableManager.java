@@ -1,5 +1,7 @@
 package org.infinispan.persistence.jdbc.table.management;
 
+import java.util.List;
+
 import org.infinispan.persistence.jdbc.configuration.TableManipulationConfiguration;
 import org.infinispan.persistence.jdbc.connectionfactory.ConnectionFactory;
 import org.infinispan.persistence.jdbc.logging.Log;
@@ -19,9 +21,29 @@ class PostgresTableManager extends AbstractTableManager {
    @Override
    public String getUpdateRowSql() {
       if (updateRowSql == null) {
-         updateRowSql = String.format("UPDATE %s SET %s = ? , %s = ? WHERE %s = cast(? as %s)",
-                                      getTableName(), config.dataColumnName(), config.timestampColumnName(),
-                                      config.idColumnName(), config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("UPDATE ")
+            .append(getTableName())
+            .append(" SET ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(" = ?, ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(" = ? WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = cast(? as ")
+               .append(idColumnTypes.get(i))
+               .append(')');
+         }
+         updateRowSql = buf.toString();
       }
       return updateRowSql;
    }
@@ -29,9 +51,34 @@ class PostgresTableManager extends AbstractTableManager {
    @Override
    public String getSelectRowSql() {
       if (selectRowSql == null) {
-         selectRowSql = String.format("SELECT %s, %s FROM %s WHERE %s = cast(? as %s)",
-                                      config.idColumnName(), config.dataColumnName(), getTableName(),
-                                      config.idColumnName(), config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            buf.append(idColumnNames.get(i))
+               .append(", ");
+         }
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(dataColumnNames.get(i));
+         }
+         buf.append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = cast(? as ")
+               .append(idColumnTypes.get(i))
+               .append(')');
+         }
+         selectRowSql = buf.toString();
       }
       return selectRowSql;
    }
@@ -39,9 +86,29 @@ class PostgresTableManager extends AbstractTableManager {
    @Override
    public String getSelectIdRowSql() {
       if (selectIdRowSql == null) {
-         selectIdRowSql = String.format("SELECT %s FROM %s WHERE %s = cast(? as %s)",
-                                        config.idColumnName(), getTableName(), config.idColumnName(),
-                                        config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         StringBuilder buf = new StringBuilder();
+         buf.append("SELECT ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(idColumnNames.get(i));
+         }
+         buf.append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = cast(? as ")
+               .append(idColumnTypes.get(i))
+               .append(')');
+         }
+         selectIdRowSql = buf.toString();
       }
       return selectIdRowSql;
    }
@@ -49,8 +116,22 @@ class PostgresTableManager extends AbstractTableManager {
    @Override
    public String getDeleteRowSql() {
       if (deleteRowSql == null) {
-         deleteRowSql = String.format("DELETE FROM %s WHERE %s = cast(? as %s)",
-                                      getTableName(), config.idColumnName(), config.idColumnType());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> idColumnTypes = config.idColumnTypes();
+         StringBuilder buf = new StringBuilder();
+         buf.append("DELETE FROM ")
+            .append(getTableName())
+            .append(" WHERE ");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(" AND ");
+            }
+            buf.append(idColumnNames.get(i))
+               .append(" = cast(? as ")
+               .append(idColumnTypes.get(i))
+               .append(')');
+         }
+         deleteRowSql = buf.toString();
       }
       return deleteRowSql;
    }
@@ -65,9 +146,28 @@ class PostgresTableManager extends AbstractTableManager {
    @Override
    public String getUpsertRowSql() {
       if (upsertRowSql == null) {
-         upsertRowSql = String.format("%1$s ON CONFLICT (%2$s) DO UPDATE SET %3$s = EXCLUDED.%3$s, %4$s = EXCLUDED.%4$s",
-                                      getInsertRowSql(), config.idColumnName(), config.dataColumnName(),
-                                      config.timestampColumnName());
+         List<String> idColumnNames = config.idColumnNames();
+         List<String> dataColumnNames = config.dataColumnNames();
+         StringBuilder buf = new StringBuilder();
+         buf.append(getInsertRowSql())
+            .append(" ON CONFLICT (");
+         for (int i = 0; i < idColumnNames.size(); i++) {
+            if (i > 0) {
+               buf.append(", ");
+            }
+            buf.append(idColumnNames.get(i));
+         }
+         buf.append(") DO UPDATE SET ");
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            buf.append(dataColumnNames.get(i))
+               .append(" = EXCLUDED.")
+               .append(dataColumnNames.get(i))
+               .append(", ");
+         }
+         buf.append(config.timestampColumnName())
+            .append(" = EXCLUDED.")
+            .append(config.timestampColumnName());
+         upsertRowSql = buf.toString();
       }
       return upsertRowSql;
    }

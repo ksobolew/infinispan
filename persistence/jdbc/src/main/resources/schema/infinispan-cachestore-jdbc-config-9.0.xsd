@@ -137,12 +137,12 @@
 
   <xs:complexType name="table">
     <xs:sequence>
-      <xs:element name="id-column" type="tns:id-column" minOccurs="0">
+      <xs:element name="id-column" type="tns:id-column" minOccurs="0" maxOccurs="unbounded">
         <xs:annotation>
           <xs:documentation>Defines the column in which to store the cache key or bucket id.</xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="data-column" type="tns:data-column" minOccurs="0">
+      <xs:element name="data-column" type="tns:data-column" minOccurs="0" maxOccurs="unbounded">
         <xs:annotation>
           <xs:documentation>Defines the column in which to store the cache entry or bucket.</xs:documentation>
         </xs:annotation>

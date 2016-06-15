@@ -1,6 +1,8 @@
 package org.infinispan.commons.configuration.attributes;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
@@ -199,7 +201,13 @@ public final class Attribute<T> implements Cloneable {
    }
 
    void write(XMLStreamWriter writer, String name) throws XMLStreamException {
-      if (modified && value != null) {
+      if (modified) {
+         write(writer, name, value);
+      }
+   }
+
+   private <V> void write(XMLStreamWriter writer, String name, V value) throws XMLStreamException {
+      if (value != null) {
          Class<?> klass = value.getClass();
          if (klass == Class.class) {
             writer.writeAttribute(name, ((Class) value).getName());
@@ -207,6 +215,14 @@ public final class Attribute<T> implements Cloneable {
             writer.writeAttribute(name, ((Enum) value).name());
          } else if (Util.isBasicType(klass)) {
             writer.writeAttribute(name, value.toString());
+         } else if (klass.isArray()) {
+            for (int n = Array.getLength(value), i = 0; i < n; i++) {
+               write(writer, name, Array.get(value, i));
+            }
+         } else if (Collection.class.isAssignableFrom(klass)) {
+            for (Object elem : (Collection<?>) value) {
+               write(writer, name, elem);
+            }
          } else {
             writer.writeAttribute(name, klass.getName());
          }

@@ -139,6 +139,9 @@ public interface Log extends org.infinispan.util.logging.Log {
    @Message(value = "Attribute '%s' has not been set", id = 8028)
    CacheConfigurationException tableManipulationAttributeNotSet(String name);
 
+   @Message(value = "Specified %d column types while there are %d column names for %s and %s", id = 8031)
+   CacheConfigurationException tableManipulationColumnNamesAndTypesDontMatch(int typesCount, int namesCount, String typesAttr, String namesAttr);
+
    @Message(value = "A ConnectionFactory has not been specified for this store", id = 8029)
    CacheConfigurationException missingConnectionFactory();
 
