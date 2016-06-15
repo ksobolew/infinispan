@@ -10,18 +10,21 @@ import org.infinispan.configuration.cache.SingletonStoreConfiguration;
 import org.infinispan.configuration.serializing.SerializedWith;
 import org.infinispan.persistence.jdbc.stringbased.JdbcStringBasedStore;
 import org.infinispan.persistence.keymappers.DefaultTwoWayKey2StringMapper;
+import org.infinispan.persistence.keymappers.DefaultTwoWayValue2StringMapper;
 
 @BuiltBy(JdbcStringBasedStoreConfigurationBuilder.class)
 @ConfigurationFor(JdbcStringBasedStore.class)
 @SerializedWith(JdbcStringBasedStoreConfigurationSerializer.class)
 public class JdbcStringBasedStoreConfiguration extends AbstractJdbcStoreConfiguration {
    static final AttributeDefinition<String> KEY2STRING_MAPPER = AttributeDefinition.builder("key2StringMapper" , DefaultTwoWayKey2StringMapper.class.getName()).immutable().xmlName("key-to-string-mapper").build();
+   static final AttributeDefinition<String> VALUE2STRING_MAPPER = AttributeDefinition.builder("value2StringMapper" , DefaultTwoWayValue2StringMapper.class.getName()).immutable().xmlName("value-to-string-mapper").build();
 
    public static AttributeSet attributeDefinitionSet() {
-      return new AttributeSet(JdbcStringBasedStoreConfiguration.class, AbstractJdbcStoreConfiguration.attributeDefinitionSet(), KEY2STRING_MAPPER);
+      return new AttributeSet(JdbcStringBasedStoreConfiguration.class, AbstractJdbcStoreConfiguration.attributeDefinitionSet(), KEY2STRING_MAPPER, VALUE2STRING_MAPPER);
    }
 
    private final Attribute<String> key2StringMapper;
+   private final Attribute<String> value2StringMapper;
    private final TableManipulationConfiguration table;
 
    public JdbcStringBasedStoreConfiguration(AttributeSet attributes, AsyncStoreConfiguration async, SingletonStoreConfiguration singletonStore,
@@ -29,10 +32,15 @@ public class JdbcStringBasedStoreConfiguration extends AbstractJdbcStoreConfigur
       super(attributes, async, singletonStore, connectionFactory);
       this.table = table;
       key2StringMapper = attributes.attribute(KEY2STRING_MAPPER);
+      value2StringMapper = attributes.attribute(VALUE2STRING_MAPPER);
    }
 
    public String key2StringMapper() {
       return key2StringMapper.get();
+   }
+
+   public String value2StringMapper() {
+      return value2StringMapper.get();
    }
 
    public TableManipulationConfiguration table() {

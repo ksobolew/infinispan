@@ -24,6 +24,7 @@ public enum Attribute {
    DROP_ON_EXIT("drop-on-exit"),
    FETCH_SIZE("fetch-size"),
    KEY_TO_STRING_MAPPER("key-to-string-mapper"),
+   VALUE_TO_STRING_MAPPER("value-to-string-mapper"),
    NAME("name"),
    PASSIVATION("passivation"),
    PASSWORD("password"),

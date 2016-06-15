@@ -6,6 +6,7 @@ import java.util.Properties;
 import org.infinispan.configuration.cache.PersistenceConfigurationBuilder;
 import org.infinispan.configuration.parsing.XmlConfigHelper;
 import org.infinispan.persistence.keymappers.DefaultTwoWayKey2StringMapper;
+import org.infinispan.persistence.keymappers.DefaultTwoWayValue2StringMapper;
 import org.infinispan.persistence.keymappers.Key2StringMapper;
 import org.infinispan.commons.configuration.Builder;
 import org.infinispan.commons.configuration.attributes.AttributeSet;
@@ -43,11 +44,29 @@ public class JdbcStringBasedStoreConfigurationBuilder extends AbstractJdbcStoreC
    }
 
    /**
+    * The class name of a {@link Key2StringMapper} to use for mapping values to strings suitable for
+    * storage in a database table. Defaults to {@link DefaultTwoWayValue2StringMapper}
+    */
+   public JdbcStringBasedStoreConfigurationBuilder value2StringMapper(String value2StringMapper) {
+      attributes.attribute(VALUE2STRING_MAPPER).set(value2StringMapper);
+      return this;
+   }
+
+   /**
     * The class of a {@link Key2StringMapper} to use for mapping keys to strings suitable for
     * storage in a database table. Defaults to {@link DefaultTwoWayKey2StringMapper}
     */
    public JdbcStringBasedStoreConfigurationBuilder key2StringMapper(Class<? extends Key2StringMapper> klass) {
       key2StringMapper(klass.getName());
+      return this;
+   }
+
+   /**
+    * The class of a {@link Key2StringMapper} to use for mapping values to strings suitable for
+    * storage in a database table. Defaults to {@link DefaultTwoWayValue2StringMapper}
+    */
+   public JdbcStringBasedStoreConfigurationBuilder value2StringMapper(Class<? extends Key2StringMapper> klass) {
+      value2StringMapper(klass.getName());
       return this;
    }
 

@@ -2,8 +2,6 @@ package org.infinispan.persistence.jdbc.stringbased;
 
 import static org.infinispan.persistence.PersistenceUtil.getExpiryTime;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,7 +15,6 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 
 import org.infinispan.commons.configuration.ConfiguredBy;
-import org.infinispan.commons.io.ByteBuffer;
 import org.infinispan.commons.util.Util;
 import org.infinispan.configuration.global.GlobalConfiguration;
 import org.infinispan.filter.KeyFilter;
@@ -35,8 +32,8 @@ import org.infinispan.persistence.keymappers.TwoWayKey2StringMapper;
 import org.infinispan.persistence.keymappers.UnsupportedKeyTypeException;
 import org.infinispan.persistence.spi.AdvancedLoadWriteStore;
 import org.infinispan.persistence.spi.InitializationContext;
+import org.infinispan.persistence.spi.InitializationContextAware;
 import org.infinispan.persistence.spi.PersistenceException;
-import org.infinispan.util.KeyValuePair;
 import org.infinispan.util.logging.LogFactory;
 
 /**
@@ -81,8 +78,10 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
 
    private JdbcStringBasedStoreConfiguration configuration;
    private List<String> keyColumnNames;
+   private List<String> valueColumnNames;
 
    private Key2StringMapper key2StringMapper;
+   private Key2StringMapper value2StringMapper;
    private ConnectionFactory connectionFactory;
    private TableManager tableManager;
    private InitializationContext ctx;
@@ -94,6 +93,7 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    public void init(InitializationContext ctx) {
       this.configuration = ctx.getConfiguration();
       this.keyColumnNames = this.configuration.table().idColumnNames();
+      this.valueColumnNames = this.configuration.table().dataColumnNames();
       this.ctx = ctx;
       cacheName = ctx.getCache().getName();
       globalConfiguration = ctx.getCache().getCacheManager().getCacheManagerConfiguration();
@@ -107,9 +107,17 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
          initializeConnectionFactory(factory);
       }
       try {
-         Object mapper = Util.loadClassStrict(configuration.key2StringMapper(),
+         Object keyMapper = Util.loadClassStrict(configuration.key2StringMapper(),
                                               globalConfiguration.classLoader()).newInstance();
-         if (mapper instanceof Key2StringMapper) key2StringMapper = (Key2StringMapper) mapper;
+         if (keyMapper instanceof Key2StringMapper) key2StringMapper = (Key2StringMapper) keyMapper;
+         Object valueMapper = Util.loadClassStrict(configuration.value2StringMapper(),
+               globalConfiguration.classLoader()).newInstance();
+         if (valueMapper instanceof Key2StringMapper) {
+            value2StringMapper = (Key2StringMapper) valueMapper;
+            if (value2StringMapper instanceof InitializationContextAware) {
+               ((InitializationContextAware) value2StringMapper).setInitializationContext(ctx);
+            }
+         }
       } catch (Exception e) {
          log.errorf("Trying to instantiate %s, however it failed due to %s", configuration.key2StringMapper(),
                     e.getClass().getName());
@@ -165,18 +173,13 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
       } catch (SQLException ex) {
          log.sqlFailureStoringKey(Arrays.toString(keyObjs), ex);
          throw new PersistenceException(String.format("Error while storing string key to database; key: '%s'", Arrays.asList(keyObjs)), ex);
-      } catch (InterruptedException e) {
-         if (trace) {
-            log.trace("Interrupted while marshalling to store");
-         }
-         Thread.currentThread().interrupt();
       } finally {
          connectionFactory.releaseConnection(connection);
       }
    }
 
    private void executeUpsert(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, Object[] keyObjs)
-         throws InterruptedException, SQLException {
+         throws SQLException {
       PreparedStatement ps = null;
       String sql = tableManager.getUpsertRowSql();
       if (trace) {
@@ -191,7 +194,7 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    }
 
    private void executeLegacyUpdate(Connection connection, MarshalledEntry<? extends K, ? extends V> entry, Object[] keyObjs)
-         throws InterruptedException, SQLException {
+         throws SQLException {
       String sql = tableManager.getSelectIdRowSql();
       if (trace) {
          log.tracef("Running sql '%s'. Key string is '%s'", sql, Arrays.asList(keyObjs));
@@ -238,9 +241,13 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
          }
          rs = ps.executeQuery();
          if (rs.next()) {
-            InputStream inputStream = rs.getBinaryStream(2);
-            KeyValuePair<ByteBuffer, ByteBuffer> icv = JdbcUtil.unmarshall(ctx.getMarshaller(), inputStream);
-            storedValue = ctx.getMarshalledEntryFactory().newMarshalledEntry(key, icv.getKey(), icv.getValue());
+            Object[] valueObjs = new Object[valueColumnNames.size() + 1];
+            valueObjs[0] = key;
+            int j = keyColumnNames.size() + 1;
+            for (int i = 0; i < valueColumnNames.size(); i++) {
+               valueObjs[i + 1] = rs.getObject(j++);
+            }
+            storedValue = (MarshalledEntry<K, V>) ((TwoWayKey2StringMapper) value2StringMapper).getKeyMapping(valueObjs);
          }
       } catch (SQLException e) {
          log.sqlFailureReadingKey(key, Arrays.toString(lockingKey), e);
@@ -375,22 +382,21 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
                TaskContext taskContext = new TaskContextImpl();
                while (rs.next()) {
                   Object[] keyObjs = new Object[keyColumnNames.size()];
+                  int j = 1;
+                  Object[] valueObjs = new Object[valueColumnNames.size() + 1];
+                  for (int i = 0; i < valueColumnNames.size(); i++) {
+                     valueObjs[i + 1] = rs.getObject(j++);
+                  }
                   for (int i = 0; i < keyObjs.length; i++) {
-                     keyObjs[i] = rs.getObject(2 + i);
+                     keyObjs[i] = rs.getObject(j++);
                   }
                   K key = (K) ((TwoWayKey2StringMapper) key2StringMapper).getKeyMapping(keyObjs);
+                  valueObjs[0] = key;
                   if (taskContext.isStopped()) break;
                   if (filter != null && !filter.accept(key))
                      continue;
-                  InputStream inputStream = rs.getBinaryStream(1);
-                  MarshalledEntry<K, V> entry;
-                  if (fetchValue || fetchMetadata) {
-                     KeyValuePair<ByteBuffer, ByteBuffer> kvp = JdbcUtil.unmarshall(ctx.getMarshaller(), inputStream);
-                     entry = ctx.getMarshalledEntryFactory().newMarshalledEntry(
-                           key, fetchValue ? kvp.getKey() : null, fetchMetadata ? kvp.getValue() : null);
-                  } else {
-                     entry = ctx.getMarshalledEntryFactory().newMarshalledEntry(key, (Object)null, null);
-                  }
+                  MarshalledEntry<K, V> entry = (MarshalledEntry<K, V>)
+                        ((TwoWayKey2StringMapper) value2StringMapper).getKeyMapping(valueObjs);
                   task.processEntry(entry, taskContext);
                }
                return null;
@@ -436,12 +442,15 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
       }
    }
 
-   private void prepareUpdateStatement(MarshalledEntry<? extends K, ? extends V> entry, Object[] key, PreparedStatement ps) throws InterruptedException, SQLException {
-      ByteBuffer byteBuffer = JdbcUtil.marshall(ctx.getMarshaller(), new KeyValuePair<>(entry.getValueBytes(), entry.getMetadataBytes()));
-      ps.setBinaryStream(1, new ByteArrayInputStream(byteBuffer.getBuf(), byteBuffer.getOffset(), byteBuffer.getLength()), byteBuffer.getLength());
-      ps.setLong(2, getExpiryTime(entry.getMetadata()));
-      for (int i = 0; i < keyColumnNames.size(); i++) {
-         ps.setObject(3 + i, key[i]);
+   private void prepareUpdateStatement(MarshalledEntry<? extends K, ? extends V> entry, Object[] key, PreparedStatement ps) throws SQLException {
+      Object[] valueObjs = value2StringMapper.getObjectsMapping(entry);
+      int i = 1;
+      for (int j = 0; j < valueColumnNames.size(); j++) {
+         ps.setObject(i++, valueObjs[j]);
+      }
+      ps.setLong(i++, getExpiryTime(entry.getMetadata()));
+      for (int j = 0; j < keyColumnNames.size(); j++) {
+         ps.setObject(i++, key[j]);
       }
    }
 

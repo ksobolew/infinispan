@@ -67,35 +67,11 @@ public abstract class ParallelIterationTest extends SingleCacheManagerTest {
    protected abstract void configurePersistence(ConfigurationBuilder cb);
 
    public void testParallelIterationWithValueAndMetadata() {
-      runIterationTest(executor, true, true);
-   }
-
-   public void testParallelIterationWithValueWithoutMetadata() {
-      runIterationTest(executor, true, false);
+      runIterationTest(executor);
    }
 
    public void testSequentialIterationWithValueAndMetadata() {
-      runIterationTest(new WithinThreadExecutor(), true, true);
-   }
-
-   public void testSequentialIterationWithValueWithoutMetadata() {
-      runIterationTest(new WithinThreadExecutor(), true, false);
-   }
-
-   public void testParallelIterationWithoutValueWithMetadata() {
-      runIterationTest(executor, false, true);
-   }
-
-   public void testParallelIterationWithoutValueOrMetadata() {
-      runIterationTest(executor, false, false);
-   }
-
-   public void testSequentialIterationWithoutValueWithMetadata() {
-      runIterationTest(new WithinThreadExecutor(), false, true);
-   }
-
-   public void testSequentialIterationWithoutValueOrMetadata() {
-      runIterationTest(new WithinThreadExecutor(), false, false);
+      runIterationTest(new WithinThreadExecutor());
    }
 
    public void testCancelingTaskMultipleProcessors() {
@@ -126,8 +102,7 @@ public abstract class ParallelIterationTest extends SingleCacheManagerTest {
       assertTrue(entries.size() >= 100);
    }
 
-   private void runIterationTest(Executor executor, final boolean fetchValues,
-         boolean fetchMetadata) {
+   private void runIterationTest(Executor executor) {
       final ConcurrentMap<Integer, Integer> entries = new ConcurrentHashMap<>();
       final ConcurrentMap<Integer, InternalMetadata> metadata = new ConcurrentHashMap<>();
       final AtomicBoolean sameKeyMultipleTimes = new AtomicBoolean();
@@ -141,14 +116,12 @@ public abstract class ParallelIterationTest extends SingleCacheManagerTest {
          @Override
          public void processEntry(MarshalledEntry marshalledEntry, AdvancedCacheLoader.TaskContext taskContext) throws InterruptedException {
             int key = unwrapKey(marshalledEntry.getKey());
-            if (fetchValues) {
-               // Note: MarshalledEntryImpl.getValue() fails with NPE when it's got null valueBytes,
-               // that's why we must not call this when values are not retrieved
-               Integer existing = entries.put(key, unwrapValue(marshalledEntry.getValue()));
-               if (existing != null) {
-                  log.warnf("Already a value present for key %s: %s", key, existing);
-                  sameKeyMultipleTimes.set(true);
-               }
+            // Note: MarshalledEntryImpl.getValue() fails with NPE when it's got null valueBytes,
+            // that's why we must not call this when values are not retrieved
+            Integer existing = entries.put(key, unwrapValue(marshalledEntry.getValue()));
+            if (existing != null) {
+               log.warnf("Already a value present for key %s: %s", key, existing);
+               sameKeyMultipleTimes.set(true);
             }
             if (marshalledEntry.getMetadata() != null) {
                log.tracef("For key %d found metadata %s", key, marshalledEntry.getMetadata());
@@ -162,18 +135,14 @@ public abstract class ParallelIterationTest extends SingleCacheManagerTest {
             }
             processed.incrementAndGet();
          }
-      }, executor, fetchValues, fetchMetadata);
+      }, executor, true, true);
 
       assertFalse(sameKeyMultipleTimes.get());
       assertFalse(brokenBarrier.get());
       assertEquals(processed.get(), NUM_ENTRIES);
       for (int i = 0; i < NUM_ENTRIES; i++) {
-         if (fetchValues) {
-            assertEquals(entries.get(i), (Integer) i, "For key " + i);
-         } else {
-            assertNull(entries.get(i), "For key " + i);
-         }
-         if (fetchMetadata && hasMetadata(i)) {
+         assertEquals(entries.get(i), (Integer) i, "For key " + i);
+         if (hasMetadata(i)) {
             assertNotNull(metadata.get(i), "For key " + i);
             assertEquals(metadata.get(i).lifespan(), lifespan(i), "For key " + i);
             assertEquals(metadata.get(i).maxIdle(), maxIdle(i), "For key " + i);
