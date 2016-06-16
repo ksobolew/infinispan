@@ -28,8 +28,11 @@ class SybaseTableManager extends AbstractTableManager {
             .append(getTableName())
             .append(" SET ");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append(dataColumnNames.get(i))
-               .append(" = ?, ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append(dataColumnNames.get(i))
+                  .append(" = ?, ");
+            }
          }
          buf.append(config.timestampColumnName())
             .append(" = ? WHERE ");

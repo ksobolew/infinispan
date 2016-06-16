@@ -35,8 +35,11 @@ class SQLiteTableManager extends AbstractTableManager {
             .append(getTableName())
             .append(" (");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append(dataColumnNames.get(i))
-               .append(", ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append(dataColumnNames.get(i))
+                  .append(", ");
+            }
          }
          buf.append(config.timestampColumnName());
          for (int i = 0; i < idColumnNames.size(); i++) {
@@ -44,7 +47,13 @@ class SQLiteTableManager extends AbstractTableManager {
                .append(idColumnNames.get(i));
          }
          buf.append(") VALUES (");
-         for (int i = 0; i < dataColumnNames.size() + idColumnNames.size(); i++) {
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append("?, ");
+            }
+         }
+         for (int i = 0; i < idColumnNames.size(); i++) {
             buf.append("?, ");
          }
          buf.append("?)");

@@ -79,6 +79,7 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
    private JdbcStringBasedStoreConfiguration configuration;
    private List<String> keyColumnNames;
    private List<String> valueColumnNames;
+   private String timestampColumnName;
 
    private Key2StringMapper key2StringMapper;
    private Key2StringMapper value2StringMapper;
@@ -94,6 +95,7 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
       this.configuration = ctx.getConfiguration();
       this.keyColumnNames = this.configuration.table().idColumnNames();
       this.valueColumnNames = this.configuration.table().dataColumnNames();
+      this.timestampColumnName = this.configuration.table().timestampColumnName();
       this.ctx = ctx;
       cacheName = ctx.getCache().getName();
       globalConfiguration = ctx.getCache().getCacheManager().getCacheManagerConfiguration();
@@ -446,7 +448,9 @@ public class JdbcStringBasedStore<K, V> implements AdvancedLoadWriteStore<K, V> 
       Object[] valueObjs = value2StringMapper.getObjectsMapping(entry);
       int i = 1;
       for (int j = 0; j < valueColumnNames.size(); j++) {
-         ps.setObject(i++, valueObjs[j]);
+         if (!valueColumnNames.get(j).equals(timestampColumnName)) {
+            ps.setObject(i++, valueObjs[j]);
+         }
       }
       ps.setLong(i++, getExpiryTime(entry.getMetadata()));
       for (int j = 0; j < keyColumnNames.size(); j++) {

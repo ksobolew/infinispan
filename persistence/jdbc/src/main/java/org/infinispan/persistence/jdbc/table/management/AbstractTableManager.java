@@ -124,10 +124,13 @@ public abstract class AbstractTableManager implements TableManager {
             .append(" NOT NULL, ");
       }
       for (int i = 0; i < dataColumnNames.size(); i++) {
-         buf.append(dataColumnNames.get(i))
-            .append(' ')
-            .append(dataColumnTypes.get(i))
-            .append(", ");
+         // it's allowed to have the timestamp column as part of the value:
+         if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+            buf.append(dataColumnNames.get(i))
+               .append(' ')
+               .append(dataColumnTypes.get(i))
+               .append(", ");
+         }
       }
       buf.append(config.timestampColumnName())
          .append(' ')
@@ -205,8 +208,11 @@ public abstract class AbstractTableManager implements TableManager {
             .append(getTableName())
             .append(" (");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append(dataColumnNames.get(i))
-               .append(", ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append(dataColumnNames.get(i))
+                  .append(", ");
+            }
          }
          buf.append(config.timestampColumnName());
          for (int i = 0; i < idColumnNames.size(); i++) {
@@ -214,7 +220,13 @@ public abstract class AbstractTableManager implements TableManager {
                .append(idColumnNames.get(i));
          }
          buf.append(") VALUES (");
-         for (int i = 0; i < dataColumnNames.size() + idColumnNames.size(); i++) {
+         for (int i = 0; i < dataColumnNames.size(); i++) {
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append("?, ");
+            }
+         }
+         for (int i = 0; i < idColumnNames.size(); i++) {
             buf.append("?, ");
          }
          buf.append("?)");
@@ -233,8 +245,11 @@ public abstract class AbstractTableManager implements TableManager {
             .append(getTableName())
             .append(" SET ");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append(dataColumnNames.get(i))
-               .append(" = ?, ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append(dataColumnNames.get(i))
+                  .append(" = ?, ");
+            }
          }
          buf.append(config.timestampColumnName())
             .append(" = ? WHERE ");
@@ -427,8 +442,11 @@ public abstract class AbstractTableManager implements TableManager {
          }
          buf.append("?)) AS tmp (");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append(dataColumnNames.get(i))
-               .append(", ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append(dataColumnNames.get(i))
+                  .append(", ");
+            }
          }
          buf.append(config.timestampColumnName());
          for (int i = 0; i < idColumnNames.size(); i++) {
@@ -446,25 +464,34 @@ public abstract class AbstractTableManager implements TableManager {
          }
          buf.append(") WHEN MATCHED THEN UPDATE SET ");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append(dataColumnNames.get(i))
-               .append(" = tmp.")
-               .append(dataColumnNames.get(i))
-               .append(", ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append(dataColumnNames.get(i))
+                  .append(" = tmp.")
+                  .append(dataColumnNames.get(i))
+                  .append(", ");
+            }
          }
          buf.append(config.timestampColumnName())
             .append(" = tmp.")
             .append(config.timestampColumnName())
             .append(" WHEN NOT MATCHED THEN INSERT (");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append(dataColumnNames.get(i))
-               .append(", ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append(dataColumnNames.get(i))
+                  .append(", ");
+            }
          }
          buf.append(config.timestampColumnName())
             .append(") VALUES (");
          for (int i = 0; i < dataColumnNames.size(); i++) {
-            buf.append("tmp.")
-               .append(dataColumnNames.get(i))
-               .append(", ");
+            // it's allowed to have the timestamp column as part of the value:
+            if (!dataColumnNames.get(i).equals(config.timestampColumnName())) {
+               buf.append("tmp.")
+                  .append(dataColumnNames.get(i))
+                  .append(", ");
+            }
          }
          buf.append("tmp.")
             .append(config.timestampColumnName())
