@@ -38,7 +38,7 @@ public class MetadataAPITest extends SingleCacheManagerTest {
    public void testPutWithVersion() {
       final Integer key = 1;
       NumericVersion version = new NumericVersion(1);
-      advCache.put(key, "v1", withVersion(version));
+      advCache.put(key, "v1", new EmbeddedMetadata.Builder().version(version).build());
       CacheEntry cacheEntry = advCache.getCacheEntry(key);
       assertEquals(EQUAL, version.compareTo(cacheEntry.getMetadata().version()));
    }
@@ -48,7 +48,7 @@ public class MetadataAPITest extends SingleCacheManagerTest {
       NumericVersion version = new NumericVersion(1);
       advCache.put(key, "v1", new EmbeddedMetadata.Builder().version(version).build());
       NumericVersion newVersion = new NumericVersion(2);
-      advCache.replace(key, "v1", "v2", withVersion(newVersion));
+      advCache.replace(key, "v1", "v2", new EmbeddedMetadata.Builder().version(newVersion).build());
       CacheEntry cacheEntry = advCache.getCacheEntry(key);
       assertEquals(EQUAL, newVersion.compareTo(cacheEntry.getMetadata().version()));
    }
@@ -56,7 +56,7 @@ public class MetadataAPITest extends SingleCacheManagerTest {
    public void testPutIfAbsentWithVersion() {
       final Integer key = 3;
       NumericVersion version = new NumericVersion(1);
-      assertEquals(null, advCache.putIfAbsent(key, "v1", withVersion(version)));
+      assertEquals(null, advCache.putIfAbsent(key, "v1", new EmbeddedMetadata.Builder().version(version).build()));
       CacheEntry cacheEntry = advCache.getCacheEntry(key);
       assertEquals(EQUAL, version.compareTo(cacheEntry.getMetadata().version()));
    }
@@ -64,7 +64,7 @@ public class MetadataAPITest extends SingleCacheManagerTest {
    public void testPutAsyncWithVersion() throws Exception {
       final Integer key = 4;
       NumericVersion version = new NumericVersion(1);
-      Future<String> f = advCache.putAsync(key, "v1", withVersion(version));
+      Future<String> f = advCache.putAsync(key, "v1", new EmbeddedMetadata.Builder().version(version).build());
       assertNotNull(f);
       assertFalse(f.isCancelled());
       assertNull(f.get());
@@ -103,7 +103,7 @@ public class MetadataAPITest extends SingleCacheManagerTest {
       NumericVersion version = new NumericVersion(1);
       advCache.put(key, "v1", new EmbeddedMetadata.Builder().version(version).build());
       NumericVersion newVersion = new NumericVersion(2);
-      advCache.replace(key, "v2", withVersion(newVersion));
+      advCache.replace(key, "v2", new EmbeddedMetadata.Builder().version(newVersion).build());
       CacheEntry cacheEntry = advCache.getCacheEntry(key);
       assertEquals(EQUAL, newVersion.compareTo(cacheEntry.getMetadata().version()));
    }
@@ -150,10 +150,6 @@ public class MetadataAPITest extends SingleCacheManagerTest {
       Metadata newMeta = new CustomMetadata(120000, 240000);
       advCache.put(key, "v2", newMeta);
       assertEquals(newMeta, advCache.getCacheEntry(key).getMetadata());
-   }
-
-   private Metadata withVersion(EntryVersion version) {
-      return new EmbeddedMetadata.Builder().version(version).build();
    }
 
    private class CustomMetadata implements Metadata, Metadata.Builder {
