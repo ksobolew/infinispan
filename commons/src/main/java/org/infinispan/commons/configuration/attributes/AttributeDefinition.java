@@ -69,7 +69,7 @@ public final class AttributeDefinition<T> {
       return autoPersist;
    }
 
-   public AttributeCopier copier() {
+   public AttributeCopier<T> copier() {
       return copier;
    }
 
@@ -111,7 +111,7 @@ public final class AttributeDefinition<T> {
       private boolean immutable = false;
       private boolean autoPersist = true;
       private String xmlName;
-      private AttributeCopier copier = null;
+      private AttributeCopier<T> copier = null;
       private AttributeInitializer<? extends T> initializer;
       private AttributeValidator<? super T> validator;
 
@@ -127,7 +127,7 @@ public final class AttributeDefinition<T> {
          return this;
       }
 
-      public Builder<T> copier(AttributeCopier copier) {
+      public Builder<T> copier(AttributeCopier<T> copier) {
          this.copier = copier;
          return this;
       }

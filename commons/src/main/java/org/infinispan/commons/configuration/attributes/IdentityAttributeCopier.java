@@ -10,7 +10,11 @@ package org.infinispan.commons.configuration.attributes;
  * @since 7.2
  */
 public class IdentityAttributeCopier<T> implements AttributeCopier<T> {
-   public static final AttributeCopier<Object> INSTANCE = new IdentityAttributeCopier<>();
+   private static final AttributeCopier<?> INSTANCE = new IdentityAttributeCopier<>();
+
+   public static <T> AttributeCopier<T> getInstance() {
+      return (AttributeCopier<T>) INSTANCE;
+   }
 
    private IdentityAttributeCopier() {
       // Singleton constructor

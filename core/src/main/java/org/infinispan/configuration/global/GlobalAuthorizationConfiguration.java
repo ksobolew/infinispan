@@ -19,7 +19,7 @@ import org.infinispan.security.impl.NullAuditLogger;
  */
 public class GlobalAuthorizationConfiguration {
    static final AttributeDefinition<Boolean> ENABLED = AttributeDefinition.builder("enabled", false).immutable().build();
-   static final AttributeDefinition<AuditLogger> AUDIT_LOGGER = AttributeDefinition.builder("auditLogger", (AuditLogger)new NullAuditLogger()).copier(IdentityAttributeCopier.INSTANCE).immutable().build();
+   static final AttributeDefinition<AuditLogger> AUDIT_LOGGER = AttributeDefinition.builder("auditLogger", (AuditLogger)new NullAuditLogger()).copier(IdentityAttributeCopier.getInstance()).immutable().build();
    static final AttributeDefinition<PrincipalRoleMapper> PRINCIPAL_ROLE_MAPPER = AttributeDefinition.builder("principalRoleMapper", null, PrincipalRoleMapper.class).immutable().build();
    static final AttributeDefinition<Map> ROLES = AttributeDefinition.builder("roles", null, Map.class).build();
 

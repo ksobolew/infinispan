@@ -9,7 +9,11 @@ import org.infinispan.commons.util.Util;
  * @since 7.2
  */
 public class SimpleInstanceAttributeCopier<T> implements AttributeCopier<T> {
-   public static final AttributeCopier<Object> INSTANCE = new SimpleInstanceAttributeCopier<>();
+   private static final AttributeCopier<?> INSTANCE = new SimpleInstanceAttributeCopier<>();
+
+   public static <T> AttributeCopier<T> getInstance() {
+      return (AttributeCopier<T>) INSTANCE;
+   }
 
    private SimpleInstanceAttributeCopier() {
       // Singleton constructor

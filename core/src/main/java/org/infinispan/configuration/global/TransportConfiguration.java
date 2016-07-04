@@ -28,7 +28,7 @@ public class TransportConfiguration {
    static final AttributeDefinition<Long> INITIAL_CLUSTER_TIMEOUT = AttributeDefinition.builder(
            "initialClusterTimeout", TimeUnit.MINUTES.toMillis(1)).build();
    static final AttributeDefinition<Transport> TRANSPORT = AttributeDefinition
-         .builder("transport", null, Transport.class).copier(IdentityAttributeCopier.INSTANCE).immutable().build();
+         .builder("transport", null, Transport.class).copier(IdentityAttributeCopier.getInstance()).immutable().build();
    public static final AttributeDefinition<TypedProperties> PROPERTIES = AttributeDefinition
          .builder("properties", null, TypedProperties.class).initializer(new AttributeInitializer<TypedProperties>() {
             @Override
