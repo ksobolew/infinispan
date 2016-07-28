@@ -142,7 +142,9 @@ public abstract class AbstractTableManager implements TableManager {
          }
          buf.append(idColumnNames.get(i));
       }
-      buf.append("))");
+      buf.append("), KEY key_stamp (")
+         .append(config.timestampColumnName())
+         .append("))");
       String ddl = buf.toString();
 
       if (log.isTraceEnabled()) {
